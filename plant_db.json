@@ -1,0 +1,17 @@
+{
+  "Monstera": {
+    "water": "Once per week",
+    "light": "Bright, indirect light",
+    "fertilizer": "Monthly during growing season"
+  },
+  "Snake Plant": {
+    "water": "Every 2–3 weeks",
+    "light": "Low to bright indirect light",
+    "fertilizer": "Twice per year"
+  },
+  "Succulent": {
+    "water": "Once every 2 weeks",
+    "light": "Bright, direct sunlight",
+    "fertilizer": "Once in spring"
+  }
+}
