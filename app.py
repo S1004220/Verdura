@@ -15,9 +15,9 @@ plant_db = load_plant_db()
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 # App Configuration
-st.set_page_config(page_title="Plant Guardian – Smart Plant Care App", layout="wide")
+st.set_page_config(page_title="VerDura– Smart Plant Care App", layout="wide")
 
-st.title("🌿 Plant Guardian – Smart Plant Care App")
+st.title("🌿VerDura– Smart Plant Care App")
 
 # Sidebar navigation
 page = st.sidebar.selectbox("Select a feature", ["Plant Database", "AI Health Diagnostics", "Expert Chatbot"])
