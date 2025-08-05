@@ -68,11 +68,16 @@ elif page == "Expert Chatbot":
         messages.extend(st.session_state.history)
         
         with st.spinner("Getting expert advice..."):
-            response = openai.ChatCompletion.create(
+            from openai import OpenAI
+
+            client = OpenAI()  # This will use your environment variable or st.secrets for the API key
+            
+            response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=messages,
                 max_tokens=300,
                 temperature=0.7
+       
             )
         answer = response.choices[0].message.content
         st.session_state.history.append({"role": "assistant", "content": answer})
