@@ -85,7 +85,7 @@ elif page == "Ask an Expert":
             except Exception as e:
                 assistant_reply = f"Error: {e}"
             st.session_state.history.append({"role": "assistant", "content": assistant_reply})
-            st.experimental_rerun()  # Refresh chat
+            st.rerun()  # Refresh chat
 
 # --------- Footer -----------
 st.markdown(
