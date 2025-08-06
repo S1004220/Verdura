@@ -76,7 +76,7 @@ elif page == "Ask an Expert":
         with st.spinner("Expert is thinking..."):
             try:
                 response = client.chat.completions.create(
-                    model="openai/gpt-3.5-turbo",
+                    model="deepseek/deepseek-r1-0528:free",
                     messages=st.session_state.history,
                     max_tokens=400,
                     temperature=0.7
