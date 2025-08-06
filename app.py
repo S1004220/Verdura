@@ -1,90 +1,101 @@
 import streamlit as st
 import json
 from PIL import Image
-import openai
+import os
 
-# Load plant database once
+# --------- Chatbot Setup (OpenRouter) -----------
+from openai import OpenAI
+
+# Read OpenRouter API key
+os.environ["OPENAI_API_KEY"] = st.secrets["OPENROUTER_API_KEY"]
+client = OpenAI(base_url="https://openrouter.ai/api/v1")
+
+# --------- Plant DB Loader ------------
 @st.cache_data
 def load_plant_db():
     with open("plant_db.json") as f:
         return json.load(f)
-
 plant_db = load_plant_db()
 
-# Set OpenAI API key from secrets
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+# ---- UI & Routing ----
+st.set_page_config(page_title="Verdura – Smart Plant Care App", layout="wide")
+st.title("🌿 Verdura – Smart Plant Care App")
 
-# App Configuration
-st.set_page_config(page_title="VerDura– Smart Plant Care App", layout="wide")
+pages = ["Plant Database", "Plant Health Diagnostics", "Ask an Expert"]
+page = st.sidebar.radio("Choose a feature", pages)
+st.sidebar.markdown("---")
+st.sidebar.info("Made with OpenRouter, Streamlit & 💚 by Verdura!")
 
-st.title("🌿VerDura– Smart Plant Care App")
-
-# Sidebar navigation
-page = st.sidebar.selectbox("Select a feature", ["Plant Database", "AI Health Diagnostics", "Expert Chatbot"])
-
-# --- Plant Database ---
+# --------- Plant Database Feature --------------
 if page == "Plant Database":
     st.header("📚 Plant Database Lookup")
-    plant_name = st.text_input("Enter plant name to get care information (e.g. 'Monstera')")
-    if plant_name:
-        plant_info = plant_db.get(plant_name.strip())
-        if plant_info:
-            st.subheader(f"Care instructions for {plant_name.title()}:")
-            st.write(f"💧 Watering: {plant_info['water']}")
-            st.write(f"🌞 Light: {plant_info['light']}")
-            st.write(f"🌿 Fertilizing: {plant_info['fertilizer']}")
+    name = st.text_input(
+        "Enter plant name (e.g., Monstera, Snake Plant, Succulent):"
+    )
+    if name:
+        plant = plant_db.get(name.strip())
+        if plant:
+            st.success(f"🌱 **{name.title()}** Care")
+            st.write(f"**💧 Water:** {plant['water']}")
+            st.write(f"**🌞 Light:** {plant['light']}")
+            st.write(f"**🌿 Fertilizer:** {plant['fertilizer']}")
         else:
-            st.error("Plant not found in the database.")
+            st.error("Plant not found! Try Monstera, Snake Plant, Succulent.")
 
-# --- AI Health Diagnostics ---
-elif page == "AI Health Diagnostics":
-    st.header("🧠 AI Plant Health Diagnostic")
-    uploaded_file = st.file_uploader("Upload a photo of your plant showing symptoms", type=["jpg", "jpeg", "png"])
-    if uploaded_file:
-        img = Image.open(uploaded_file)
-        st.image(img, caption="Uploaded Plant Photo", use_column_width=True)
-        
-        # Placeholder for AI diagnosis
-        # In production, send img to your ML model API and parse result
-        st.info("Analyzing photo...")
-        
-        # Simulated response
-        st.success("Diagnosis: No disease detected. Your plant looks healthy!")
+# --------- AI Plant Health Diagnostics --------------
+elif page == "Plant Health Diagnostics":
+    st.header("🧠 AI Plant Health Diagnostics")
+    uploaded = st.file_uploader("Upload photo showing plant symptoms", type=["jpg", "jpeg", "png"])
+    if uploaded:
+        img = Image.open(uploaded)
+        st.image(img, caption="Uploaded Plant", width=320)
+        st.write("Analyzing (simulated)...")
+        # Here you would send image to your backend API!
+        st.success("Prediction: No visible disease detected. Your plant looks healthy!")
+        st.info("Tip: Connect your own ML model/service for real-time diagnosis.")
 
-# --- Expert Chatbot ---
-elif page == "Expert Chatbot":
-    st.header("👩‍🌾 Ask a Plant Expert")
-    
+# --------- Ask an Expert Chatbot --------------
+elif page == "Ask an Expert":
+    st.header("👩‍🌾 Verdura Expert Chatbot")
+
     if "history" not in st.session_state:
-        st.session_state.history = []
-    
-    user_input = st.text_input("Type your question about plant care here")
-    
+        st.session_state.history = [
+            {"role": "system", "content": "You are a helpful plant care expert providing actionable, concise advice."}
+        ]
+
+    def show_chat_history(history):
+        for chat in history[1:]:  # skip the system prompt
+            is_user = chat["role"] == "user"
+            st.chat_message("user" if is_user else "assistant").write(chat["content"])
+
+    show_chat_history(st.session_state.history)
+
+    user_input = st.chat_input("Ask about your plant, care issues, or tips!")
     if user_input:
         st.session_state.history.append({"role": "user", "content": user_input})
-        
-        # Prepare messages for OpenAI chat completion
-        messages = [{"role": "system", "content": "You are a helpful plant care expert."}]
-        messages.extend(st.session_state.history)
-        
-        with st.spinner("Getting expert advice..."):
-            from openai import OpenAI
+        with st.spinner("Expert is thinking..."):
+            try:
+                response = client.chat.completions.create(
+                    model="openai/gpt-3.5-turbo",
+                    messages=st.session_state.history,
+                    max_tokens=400,
+                    temperature=0.7
+                )
+                assistant_reply = response.choices[0].message.content
+            except Exception as e:
+                assistant_reply = f"Error: {e}"
+            st.session_state.history.append({"role": "assistant", "content": assistant_reply})
+            st.experimental_rerun()  # Refresh chat
 
-            client = OpenAI()  # This will use your environment variable or st.secrets for the API key
-            
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=messages,
-                max_tokens=300,
-                temperature=0.7
-       
-            )
-        answer = response.choices[0].message.content
-        st.session_state.history.append({"role": "assistant", "content": answer})
-        
-        # Display chat history in reverse order (latest first)
-        for chat in reversed(st.session_state.history):
-            if chat["role"] == "user":
-                st.markdown(f"**You:** {chat['content']}")
-            else:
-                st.markdown(f"**Expert:** {chat['content']}")
+# --------- Footer -----------
+st.markdown(
+    """
+    ---
+    <small>
+    Verdura © 2024 — Smart plants, thriving lives.  
+    <br>
+    Powered by Streamlit & OpenRouter.
+    </small>
+    """,
+    unsafe_allow_html=True
+)
