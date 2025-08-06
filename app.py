@@ -123,7 +123,7 @@ elif page == "Ask an Expert Chatbot":
 
         # Append assistant response and display
         st.session_state.chat_history.append({"role": "assistant", "content": answer})
-        st.experimental_rerun()
+        st.rerun()
 
 # Footer
 st.markdown(
